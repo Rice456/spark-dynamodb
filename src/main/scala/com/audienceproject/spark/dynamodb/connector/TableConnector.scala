@@ -206,7 +206,7 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Rate limit on write capacity.
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
-                cap.getTableName -> cap.getCapacityUnits.toInt
+                cap.getTableName -> cap.getLocalSecondaryIndexes.get(cap.getTableName).getCapacityUnits.toInt
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }
         // Retry unprocessed items.

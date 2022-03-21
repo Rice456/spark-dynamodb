@@ -210,9 +210,14 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Rate limit on write capacity.
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
-                val LSI = cap.getLocalSecondaryIndexes.asScala.reduce((l1, l2) => if(l1._2.getCapacityUnits.toInt > l2._2.getCapacityUnits.toInt) l1 else l2)
-                val GSI = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => if(g1._2.getCapacityUnits.toInt > g2._2.getCapacityUnits.toInt) g1 else g2)
-                cap.getTableName -> (LSI._2.getCapacityUnits.toInt max GSI._2.getCapacityUnits.toInt)
+                if(cap.getGlobalSecondaryIndexes != null && cap.getLocalSecondaryIndexes != null){
+                    val LSI = cap.getLocalSecondaryIndexes.asScala.reduce((l1, l2) => if(l1._2.getCapacityUnits.toInt > l2._2.getCapacityUnits.toInt) l1 else l2)
+                    val GSI = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => if(g1._2.getCapacityUnits.toInt > g2._2.getCapacityUnits.toInt) g1 else g2)
+                    cap.getTableName -> (LSI._2.getCapacityUnits.toInt max GSI._2.getCapacityUnits.toInt)
+                }
+                else{
+                    cap.getTableName -> cap.getCapacityUnits.toInt
+                }
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }
         // Retry unprocessed items.

@@ -170,9 +170,9 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         val response = client.getTable(tableName).updateItem(updateItemSpec)
         Option(response.getUpdateItemResult.getConsumedCapacity)
             .foreach(cap => {
-                val LSI :Int = cap.getLocalSecondaryIndexes.asScala.reduce((l1, l2) => l1._2.getCapacityUnits.toInt max l2._2.getCapacityUnits.toInt)
-                val GSI :Int = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => g1._2.getCapacityUnits.toInt max g2._2.getCapacityUnits.toInt)
-                rateLimiter.acquire(LSI max GSI max 1)
+                val LSI = cap.getLocalSecondaryIndexes.asScala.reduce((l1, l2) => if(l1._2.getCapacityUnits.toInt > l2._2.getCapacityUnits.toInt) l1 else l2)
+                val GSI = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => if(g1._2.getCapacityUnits.toInt > g2._2.getCapacityUnits.toInt) g1 else g2)
+                rateLimiter.acquire(LSI._2.getCapacityUnits.toInt max GSI._2.getCapacityUnits.toInt max 1)
             })
     }
 
@@ -210,9 +210,9 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Rate limit on write capacity.
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
-                val LSI :Int = cap.getLocalSecondaryIndexes.asScala.reduce((l1, l2) => l1._2.getCapacityUnits.toInt max l2._2.getCapacityUnits.toInt)
-                val GSI :Int = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => g1._2.getCapacityUnits.toInt max g2._2.getCapacityUnits.toInt)
-                cap.getTableName -> (LSI max GSI)
+                val LSI = cap.getLocalSecondaryIndexes.asScala.reduce((l1, l2) => if(l1._2.getCapacityUnits.toInt > l2._2.getCapacityUnits.toInt) l1 else l2)
+                val GSI = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => if(g1._2.getCapacityUnits.toInt > g2._2.getCapacityUnits.toInt) g1 else g2)
+                cap.getTableName -> (LSI._2.getCapacityUnits.toInt max GSI._2.getCapacityUnits.toInt)
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }
         // Retry unprocessed items.

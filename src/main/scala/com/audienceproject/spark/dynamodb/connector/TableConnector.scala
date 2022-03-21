@@ -170,8 +170,8 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         val response = client.getTable(tableName).updateItem(updateItemSpec)
         Option(response.getUpdateItemResult.getConsumedCapacity)
             .foreach(cap => {
-                val LSI = cap.getLocalSecondaryIndexes.get(tableName).getCapacityUnits.toInt
-                val GSI = cap.getGlobalSecondaryIndexes.get(tableName).getCapacityUnits.toInt
+                val LSI = cap.getLocalSecondaryIndexes.asScala.reduce((g1, g2) => g1._2.getCapacityUnits.toInt max g2._2.getCapacityUnits.toInt)
+                val GSI = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => g1._2.getCapacityUnits.toInt max g2._2.getCapacityUnits.toInt)
                 rateLimiter.acquire(LSI max GSI max 1)
             })
     }
@@ -210,8 +210,8 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Rate limit on write capacity.
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
-                val LSI = cap.getLocalSecondaryIndexes.get(cap.getTableName).getCapacityUnits.toInt
-                val GSI = cap.getGlobalSecondaryIndexes.get(cap.getTableName).getCapacityUnits.toInt
+                val LSI = cap.getLocalSecondaryIndexes.asScala.reduce((g1, g2) => g1._2.getCapacityUnits.toInt max g2._2.getCapacityUnits.toInt)
+                val GSI = cap.getGlobalSecondaryIndexes.asScala.reduce((g1, g2) => g1._2.getCapacityUnits.toInt max g2._2.getCapacityUnits.toInt)
                 cap.getTableName -> (LSI max GSI)
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }

@@ -169,7 +169,11 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Update item and rate limit on write capacity.
         val response = client.getTable(tableName).updateItem(updateItemSpec)
         Option(response.getUpdateItemResult.getConsumedCapacity)
-            .foreach(cap => rateLimiter.acquire(cap.getCapacityUnits.toInt max 1))
+            .foreach(cap => {
+                val LSI = cap.getLocalSecondaryIndexes.get(tableName).getCapacityUnits.toInt
+                val GSI = cap.getGlobalSecondaryIndexes.get(tableName).getCapacityUnits.toInt
+                rateLimiter.acquire(LSI max GSI max 1)
+            })
     }
 
     override def deleteItems(columnSchema: ColumnSchema, items: Seq[InternalRow])
@@ -206,7 +210,9 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Rate limit on write capacity.
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
-                cap.getTableName -> cap.getLocalSecondaryIndexes.get(cap.getTableName).getCapacityUnits.toInt
+                val LSI = cap.getLocalSecondaryIndexes.get(cap.getTableName).getCapacityUnits.toInt
+                val GSI = cap.getGlobalSecondaryIndexes.get(cap.getTableName).getCapacityUnits.toInt
+                cap.getTableName -> (LSI max GSI)
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }
         // Retry unprocessed items.

@@ -146,7 +146,7 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
 
     override def updateItem(columnSchema: ColumnSchema, row: InternalRow)
                            (client: DynamoDB, rateLimiter: RateLimiter): Unit = {
-        val updateItemSpec = new UpdateItemSpec().withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
+        val updateItemSpec = new UpdateItemSpec().withReturnConsumedCapacity(ReturnConsumedCapacity.INDEXES)
 
         // Map primary key.
         columnSchema.keys() match {
@@ -171,7 +171,12 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         Option(response.getUpdateItemResult.getConsumedCapacity)
             .foreach(cap => {
                 val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
+                val GlobalCapacityIndex = if (cap.getGlobalSecondaryIndexes != null) {
+                    cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
+                }
+                else{
+                    0
+                }
                 rateLimiter.acquire(tableCapacity max GlobalCapacityIndex max 1)
             })
     }
@@ -211,11 +216,13 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
                 val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                var GlobalCapacityIndex = 0
-                if(cap.getGlobalSecondaryIndexes != null){
-                    GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
+                val GlobalIndexCapacityMax = if (cap.getGlobalSecondaryIndexes != null){
+                    cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
                 }
-                cap.getTableName -> (tableCapacity max GlobalCapacityIndex)
+                else{
+                    0
+                }
+                cap.getTableName -> (tableCapacity max GlobalIndexCapacityMax)
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }
         // Retry unprocessed items.

@@ -171,7 +171,7 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         Option(response.getUpdateItemResult.getConsumedCapacity)
             .foreach(cap => {
                 val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(item => item._2.getCapacityUnits.toInt).max
+                val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
                 rateLimiter.acquire(tableCapacity max GlobalCapacityIndex max 1)
             })
     }
@@ -211,7 +211,7 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
                 val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(item => item._2.getCapacityUnits.toInt).max
+                val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
                 cap.getTableName -> (tableCapacity max GlobalCapacityIndex)
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }

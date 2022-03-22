@@ -170,9 +170,14 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         val response = client.getTable(tableName).updateItem(updateItemSpec)
         Option(response.getUpdateItemResult.getConsumedCapacity)
             .foreach(cap => {
-                val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
-                rateLimiter.acquire(tableCapacity max GlobalCapacityIndex max 1)
+                if(cap.getTable != null && cap.getGlobalSecondaryIndexes != null){
+                    val tableCapacity = cap.getTable.getCapacityUnits.toInt
+                    val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
+                    rateLimiter.acquire(tableCapacity max GlobalCapacityIndex max 1)
+                }
+                else{
+                    rateLimiter.acquire(cap.getCapacityUnits.toInt max 1)
+                }
             })
     }
 
@@ -210,9 +215,14 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Rate limit on write capacity.
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
-                val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
-                cap.getTableName -> (tableCapacity max GlobalCapacityIndex)
+                if(cap.getTable != null && cap.getGlobalSecondaryIndexes != null){
+                    val tableCapacity = cap.getTable.getCapacityUnits.toInt
+                    val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
+                    cap.getTableName -> (tableCapacity max GlobalCapacityIndex)
+                }
+                else{
+                    cap.getTableName -> cap.getCapacityUnits.toInt
+                }
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }
         // Retry unprocessed items.

@@ -170,14 +170,19 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         val response = client.getTable(tableName).updateItem(updateItemSpec)
         Option(response.getUpdateItemResult.getConsumedCapacity)
             .foreach(cap => {
-                if(cap.getTable != null && cap.getGlobalSecondaryIndexes != null){
-                    val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                    val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
-                    rateLimiter.acquire(tableCapacity max GlobalCapacityIndex max 1)
-                }
-                else{
+                if(cap.getTable == null && cap.getGlobalSecondaryIndexes == null){
                     rateLimiter.acquire(cap.getCapacityUnits.toInt max 1)
+
                 }
+                var tableCapacity = 0
+                var GlobalCapacityIndex = 0
+                if(cap.getTable != null) {
+                    tableCapacity = cap.getTable.getCapacityUnits.toInt
+                }
+                if(cap.getGlobalSecondaryIndexes != null){
+                    GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
+                }
+                rateLimiter.acquire(tableCapacity max GlobalCapacityIndex max 1)
             })
     }
 
@@ -215,14 +220,18 @@ private[dynamodb] class TableConnector(tableName: String, parallelism: Int, para
         // Rate limit on write capacity.
         if (response.getBatchWriteItemResult.getConsumedCapacity != null) {
             response.getBatchWriteItemResult.getConsumedCapacity.asScala.map(cap => {
-                if(cap.getTable != null && cap.getGlobalSecondaryIndexes != null){
-                    val tableCapacity = cap.getTable.getCapacityUnits.toInt
-                    val GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
-                    cap.getTableName -> (tableCapacity max GlobalCapacityIndex)
-                }
-                else{
+                if(cap.getTable == null && cap.getGlobalSecondaryIndexes == null){
                     cap.getTableName -> cap.getCapacityUnits.toInt
                 }
+                var tableCapacity = 0
+                var GlobalCapacityIndex = 0
+                if(cap.getTable != null){
+                    tableCapacity = cap.getTable.getCapacityUnits.toInt
+                }
+                if(cap.getGlobalSecondaryIndexes != null){
+                    GlobalCapacityIndex = cap.getGlobalSecondaryIndexes.asScala.map(_._2.getCapacityUnits.toInt).max
+                }
+                cap.getTableName -> (tableCapacity max GlobalCapacityIndex)
             }).toMap.get(tableName).foreach(units => rateLimiter.acquire(units max 1))
         }
         // Retry unprocessed items.

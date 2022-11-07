@@ -12,6 +12,9 @@ compileOrder := CompileOrder.JavaThenScala
 
 resolvers += "DynamoDBLocal" at "https://s3-us-west-2.amazonaws.com/dynamodb-local/release"
 
+//For M1 architecture
+Global / serverConnectionType := ConnectionType.Tcp
+
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-sts" % "1.11.678"
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.11.678"
 libraryDependencies += "com.amazonaws" % "DynamoDBLocal" % "[1.11,2.0)" % "test" exclude("com.google.guava", "guava")

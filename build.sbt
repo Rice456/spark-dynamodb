@@ -95,41 +95,36 @@ Test / resourceGenerators += Def.task {
 }.taskValue
 
 /**
-  * Maven specific settings for publishing to Maven central.
-  */
-publishMavenStyle := true
-publishArtifact in Test := false
-pomIncludeRepository := { _ => false }
-publishTo := {
-    val nexus = "https://oss.sonatype.org/"
+ * Maven specific settings for publishing to Maven central.
+ */
+credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
+ThisBuild / scmInfo := Some(
+    ScmInfo(
+        url("https://github.com/Rice456/spark-dynamodb"),
+        "scm:git@github.com:Rice456/spark-dynamodb.git"
+    )
+)
+ThisBuild / developers := List(
+    Developer(
+        id = "rice456",
+        name = "Joe liu",
+        email = "joe.liu@gummicube.com",
+        url = url("https://github.com/Rice456/spark-dynamodb")
+    )
+)
+
+ThisBuild / description := "spark-dynamodb"
+ThisBuild / licenses := List(
+    "Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt")
+)
+ThisBuild / homepage := Some(url("https://github.com/Rice456/spark-dynamodb"))
+
+// Remove all additional repository other than Maven Central from POM
+ThisBuild / pomIncludeRepository := { _ => false }
+ThisBuild / publishTo := {
+    val nexus = "https://s01.oss.sonatype.org/"
     if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
-pomExtra := <url>https://github.com/audienceproject/spark-dynamodb</url>
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://opensource.org/licenses/apache-2.0</url>
-        </license>
-    </licenses>
-    <scm>
-        <url>git@github.com:audienceproject/spark-dynamodb.git</url>
-        <connection>scm:git:git//github.com/audienceproject/spark-dynamodb.git</connection>
-        <developerConnection>scm:git:ssh://github.com:audienceproject/spark-dynamodb.git</developerConnection>
-    </scm>
-    <developers>
-        <developer>
-            <id>jacobfi</id>
-            <name>Jacob Fischer</name>
-            <email>jacob.fischer@audienceproject.com</email>
-            <organization>AudienceProject</organization>
-            <organizationUrl>https://www.audienceproject.com</organizationUrl>
-        </developer>
-        <developer>
-            <id>johsbk</id>
-            <name>Johs Kristoffersen</name>
-            <email>johs.kristoffersen@audienceproject.com</email>
-            <organization>AudienceProject</organization>
-            <organizationUrl>https://www.audienceproject.com</organizationUrl>
-        </developer>
-    </developers>
+ThisBuild / publishMavenStyle := true
+ThisBuild / publishArtifact in Test := false

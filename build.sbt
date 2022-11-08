@@ -1,7 +1,5 @@
 name := "spark-dynamodb"
 
-organization := "io.github.rice456"
-
 version := "1.2.0"
 
 description := "Plug-and-play implementation of an Apache Spark custom data source for AWS DynamoDB."
@@ -101,12 +99,9 @@ Test / resourceGenerators += Def.task {
  * Maven specific settings for publishing to Maven central.
  */
 credentials += Credentials(Path.userHome / ".sbt" / "sonatype_credentials")
-credentials += Credentials(
-    "GnuPG Key ID",
-    "gpg",
-    "32B1EEA35A57FD56068372BE7AD48A131A41B897", // key identifier
-    "ignored" // this field is ignored; passwords are supplied by pinentry
-)
+
+This / organization := "io.github.rice456"
+
 ThisBuild / scmInfo := Some(
     ScmInfo(
         url("https://github.com/Rice456/spark-dynamodb"),

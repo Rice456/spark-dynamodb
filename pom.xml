@@ -11,6 +11,7 @@
     </distributionManagement>
 
     <artifactId>spark-dynamodb_2.12</artifactId>
+    <groupId>rice456</groupId>
     <packaging>jar</packaging>
     <description>Plug-and-play implementation of an Apache Spark custom data source for AWS DynamoDB.</description>
     <version>1.2.0</version>

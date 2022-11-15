@@ -1,5 +1,3 @@
-organization := "com.audienceproject"
-
 name := "spark-dynamodb"
 
 version := "1.2.0"

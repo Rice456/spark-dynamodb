@@ -14,7 +14,7 @@ resolvers += "DynamoDBLocal" at "https://s3-us-west-2.amazonaws.com/dynamodb-loc
 
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-sts" % "1.11.678"
 libraryDependencies += "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.11.678"
-libraryDependencies += "com.amazonaws" % "DynamoDBLocal" % "[1.11,2.0)" % Test
+libraryDependencies += "com.amazonaws" % "DynamoDBLocal" % "1.11.86" % Test
 
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.0.0" % "provided"
 

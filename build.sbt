@@ -1,3 +1,5 @@
+organization := "rice456"
+
 name := "spark-dynamodb"
 
 version := "1.2.0"

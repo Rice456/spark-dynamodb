@@ -9,6 +9,7 @@ on:
 jobs:
     publish:
         name: Publish
+        timeout-minutes: 5
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v3
@@ -20,6 +21,5 @@ jobs:
             - name: publish
               run: mvn deploy
               env:
-                  LOGIN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
+                  GITHUB_USERNAME: rice456
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
